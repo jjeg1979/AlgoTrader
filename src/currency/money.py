@@ -1,7 +1,13 @@
+"""Class Money"""
+# Standard Library imports
+from datetime import datetime as dt
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Self
 from enum import StrEnum
+
+# Third party imports
+from forex_python.converter import CurrencyRates
 
 
 class Symbol(StrEnum):
@@ -190,6 +196,19 @@ class Money:
         """
         precision: int = count_decimals(amount)
         return cls(int(amount * (10**precision)), precision, currency_symbol)
+
+    def convert_to(self, other_curr: Self, date_str: str) -> Self:
+        # Date str to datetime object
+        date_and_time = dt.strptime(date_str, "%Y-%m-%d").date()
+        # Get the exchange rate using forex-python library
+        c = CurrencyRates(force_decimal=True)
+        exchange_rate: Decimal = \
+            c.get_rate(str(self.currency_symbol),  # type: ignore
+                       str(other_curr.currency_symbol),
+                       date_and_time)  # type: ignore
+        return Money(exchange_rate * self.amount_cents,  # type: ignore
+                     self.precision,
+                     other_curr.currency_symbol)
 
     def __str__(self) -> str:
         """Return a string representation of the Money instance.
