@@ -1,6 +1,7 @@
 """Tests for Money Class"""
 
 # Standard libraries import
+from decimal import Decimal
 
 # Third party libraries import
 import pytest
@@ -11,6 +12,31 @@ from src.currency.money import (
     Money,
     InvalidMoneyType,
 )
+
+
+EXPECTED_SYMBOLS: list[str] = ["AUD",
+                               "BGN",
+                               "CAD",
+                               "CHF",
+                               "CZK",
+                               "DKK",
+                               "EUR",
+                               "GBP",
+                               "HKD",
+                               "HUF",
+                               "ILS",
+                               "JPY",
+                               "MXN",
+                               "NOK",
+                               "PLN",
+                               "RON",
+                               "RUB",
+                               "SEK",
+                               "SGD",
+                               "TRY",
+                               "USD",
+                               "NZD",
+                               "ZAR"]
 
 
 @pytest.fixture
@@ -34,10 +60,18 @@ class TestSymbolStrEnum:
     def test_len_symbol(self):
         assert len(Symbol) == 23
 
+    def test_symbols_supported(self):
+        assert Symbol.symbol_supported() == EXPECTED_SYMBOLS
+
 
 class TestMoneyClass:
     """Class that contains the tests for the Money Class"""
 
+    def test_mint_method(self):
+        money = Money.mint(Decimal('12.25'), Symbol("CHF"))
+        assert isinstance(money, Money)
+        assert money.currency_symbol == "CHF"
+    
     def test_money_init_method(self):
         """__init__() should return a valid object with correct
         digits and precision"""
@@ -57,8 +91,8 @@ class TestMoneyClass:
                               (Money(100, 2) + Money(1200, 2), 1300),
                               (Money(400, 2) + Money(250, 2), 650),
                               ])  # type: ignore
-    def test_sum_provides_correct_result(self, 
-                                         actual: Money, 
+    def test_sum_provides_correct_result(self,
+                                         actual: Money,
                                          expected: int):
         assert actual.amount_cents == expected
 
