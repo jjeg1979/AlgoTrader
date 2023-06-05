@@ -40,11 +40,27 @@ class FXPair:
     def __init__(self, base_cur: Symbol, 
                  quote_cur: Symbol, 
                  pip_size: int) -> None:
+        """Initialize an object of FXPair Class
+
+        Args:
+            base_cur (Symbol): Base currency
+            quote_cur (Symbol): Quoted currency
+            pip_size (int): Number of digits to represent 
+                            (broker-dependent feature)
+
+        Raises:
+            InvalidFXPair: Base and Quote are the same
+        """
         if base_cur == quote_cur:
             raise InvalidFXPair()
         self.base_cur = base_cur
         self.quote_cur = quote_cur
         self.pip_size = pip_size
 
+    def swap_base_and_quote(self):
+        """Swaps base and quote currencies"""
+        self.base_cur, self.quote_cur = self.quote_cur, self.base_cur
+    
+    
     def __str__(self):
         return f"{str(self.base_cur)}{str(self.quote_cur)}"
