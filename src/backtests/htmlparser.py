@@ -1,0 +1,191 @@
+# Standard library imports
+from typing import Optional
+from pathlib import Path
+from datetime import datetime
+import re
+from enum import StrEnum
+
+# Third party imports
+import pandas as pd
+from bs4 import BeautifulSoup
+
+
+# Project imports
+
+
+# CONSTANTS
+HTML_TABLE_TAG: str = "table"
+HTML_TABLE_ROW_TAG: str = "tr"
+HTML_TABLE_CELL_TAG: str = "td"
+HTML_PARSER = "html.parser"
+
+# ENUMERATIONS
+class BTType(StrEnum):
+    GBX = "GENBOX",
+    MT  = "METATRADER",
+    STM = "STATEMENT"
+    
+    def __str__(self) -> str:
+        return f"{self.value}"
+    
+    def supported_backtest_types(self) -> list[str]:
+        return [str(s) for s in BTType.__members__.values()]
+    
+
+def read_html_file(file: Path) -> Optional[str]:
+    """Reads a backtest file in html format
+
+    Valid for MT4/MT5, Genbox and Account Statements
+
+    Args:
+        file (Path): _description_
+
+    Raises:
+        FileNotFoundError: _description_
+
+    Returns:
+        Optional[str]: _description_
+    """
+    try:        
+        with open(file, "r") as f:
+            return f.read()
+    except FileNotFoundError:
+        raise FileNotFoundError
+
+def extract_tables_from_html(html_content: str) -> list[str]:
+    """Extract tables in html file
+
+
+    Args:
+        html_content (str): text string with html content
+
+    Returns:
+        list[str]: list with html tables as text
+    """
+    soup = BeautifulSoup(html_content, HTML_PARSER)
+    tables = soup.find_all(HTML_TABLE_TAG)
+    return tables
+
+def extract_dfs_from_html_tables(tables: list[str]) -> \
+    list[pd.DataFrame]:
+    """Extract DataFrames from HTML Tables
+    
+    Args:
+        tables (list[str]): list with tablas in text format
+        
+    Returns:
+        list[pd.DataFrame]: list with dataframes extracted
+    
+    """   
+    extracted_tables: list[pd.DataFrame] = []
+    for table in tables:
+        rows: list[str] = table.find_all(HTML_TABLE_ROW_TAG)  # type: ignore
+        table_data: list[pd.DataFrame] = []
+        for row in rows:  # type: ignore
+            cells: list[str] = row.find_all(HTML_TABLE_CELL_TAG)  # type: ignore
+            row_data: list[str] = [cell.text.strip() for cell in cells]  # type: ignore
+            table_data.append(row_data)  # type: ignore
+        df = pd.DataFrame(table_data)
+        extracted_tables.append(df)  
+    return extracted_tables
+
+def parse_dates_and_times_from_string(text: str) -> list[str]:
+    """Parses dates and times from a text string.
+
+    Format for substrings: YYYY.MM.DD (HH:MM)
+
+    Args:
+        text (str): string with several times and dates
+
+    Returns:
+        list[str]: list with the dates and times in text format
+    """
+     # Pattern for date and time
+    pattern_dt: str = r'\d{4}\.\d{2}\.\d{2}(?: \d{2}:\d{2})?'
+    dates_in_table: list[str] = re.findall(pattern_dt, text)
+    return dates_in_table
+
+def parse_timeframe_from_string(text: str) -> str:
+    """Captures the timeframe from a string and returns it without 
+    parenthesis.
+
+    
+    Args:
+        text (str): String with timeframe to be extracted
+
+    Returns:
+        str: Text with only the TF
+    """
+    # Pattern for TF
+    pattern_tf: str = r'\(([A-Z0-9]{2})\)'
+    timeframe: str = re.findall(pattern_tf, text)[0]
+    return timeframe
+
+
+def convert_to_datetime(str_date: str) -> datetime:
+    """Convert to datetime a date in string format
+   
+    Args:
+        str_date (str): date in string format
+
+    Returns:
+        datetime: time and date as datetime object
+    """
+    if len(str_date) > 10:
+        format_str: str = "%Y.%m.%d %H:%M"
+    else:
+        format_str: str = "%Y.%m.%d"
+    return datetime.strptime(str_date, format_str)
+    
+
+def parse_ea_parameters(text: str) -> dict[str, str]:
+    """Gathers the EA parameters from the header
+
+    Header must come from an MT4/5 backtest file.
+
+    Args:
+        text (str): Text string with CSV parameters 
+
+    Returns:
+        dict[str, str]: 'Param_name': 'Param_value'
+    """
+    elems: list[str] = text.split(';')
+    # Remove empty strings
+    elems = [elem for elem in elems if elem != '']
+    params: dict[str, str] = {}    
+    for elem in elems:
+        key, value = elem.split('=')
+        params[key.strip()] = value.strip()
+        
+    return params
+        
+
+def extract_header_information(table: pd.DataFrame) -> dict[str, str | dict[str, str]]:
+    """Parses and stores data from header in a dictionary
+    
+
+    Args:
+        table (pd.DataFrame): DataFrame with header information
+
+    Returns:
+        dict[str, str | dict[str, str]]: Formatted header information
+    """
+    data_col: list[str] = table.iloc[:,1]  # type: ignore
+    
+    dates_in_table: list[str] = parse_dates_and_times_from_string(data_col[1])
+    dates_as_dt: list[datetime] = [convert_to_datetime(date) for date in dates_in_table]
+    timeframe: str = parse_timeframe_from_string(data_col[1])
+    
+    ea_params: dict[str, str] = parse_ea_parameters(data_col[3])
+    
+    header: dict[str, str | datetime | dict[str, str]] = {
+        'Symbol': data_col[0].split(' ')[0],
+        'TF': timeframe,
+        'HistBeginning': dates_as_dt[0],
+        'HistEnding': dates_as_dt[1],
+        'BTBeginning': dates_as_dt[2],
+        'BTEnding': dates_as_dt[3],
+        'EAParams': ea_params,        
+    }
+    return header  # type: ignore
+    
