@@ -17,14 +17,12 @@ from src.backtests.htmlparser import (
     extract_dfs_from_html_tables,
     extract_header_information,
     HEADER_KEYS,
-    COLUMN_NAMES_FOR_MT4_FROM_HTML,
-    COLUMN_NAMES_FOR_GBX_FROM_HTML,
+    COLUMNS_FOR_MT4_FROM_HTML,
+    COLUMNS_FOR_GBX_FROM_HTML,
     transform_mt4_to_gbx,
 )
 
 # CONSTANTS
-
-
 PAYLOAD_DIR: str = r'tests/payload/backtests/'
 payload: list[str] = os.listdir(PAYLOAD_DIR)
 payload: list[str] = [file for file in payload if file.endswith(('.html', '.htm'))]
@@ -87,8 +85,9 @@ class TestHTMLParser:
         bt: list[pd.DataFrame] = process_backtest(Path(PAYLOAD_DIR)/payload[1])
         ops: pd.DataFrame = extract_mt4_operations_information(bt[1])
         assert isinstance(bt, list)
-        assert isinstance(ops, pd.DataFrame)        
-        assert ops.columns.to_list() == COLUMN_NAMES_FOR_MT4_FROM_HTML[1:]  # type: ignore
+        assert isinstance(ops, pd.DataFrame)
+        expected_column_names: list[str] = list(COLUMNS_FOR_MT4_FROM_HTML.values())[1:]
+        assert ops.columns.to_list() ==  expected_column_names  # type: ignore
         assert ops.index.name == "#"  # type: ignore
         
     def test_extract_gbx_operations_from_df(self):
@@ -96,14 +95,15 @@ class TestHTMLParser:
         gbx: pd.DataFrame = bt[0]
         ops: pd.DataFrame = extract_gbx_operations_information(gbx)
         assert isinstance(ops, pd.DataFrame)        
-        assert ops.columns.to_list() == COLUMN_NAMES_FOR_GBX_FROM_HTML[1:]  # type: ignore
+        expected_column_names: list[str] = list(COLUMNS_FOR_GBX_FROM_HTML.values())[1:]
+        assert ops.columns.to_list() ==  expected_column_names # type: ignore
         assert ops.index.name == "#"  # type: ignore
         
     def test_transform_mt4_to_gbx(self):
         bt: list[pd.DataFrame] = process_backtest(Path(PAYLOAD_DIR)/payload[1])
         ops: pd.DataFrame = extract_mt4_operations_information(bt[1])
         gbx: pd.DataFrame = transform_mt4_to_gbx(ops)
+        gitexpected_column_names: list[str] = list(COLUMNS_FOR_GBX_FROM_HTML.values())[1:]
         assert isinstance(gbx, pd.DataFrame)
-        assert gbx.columns.to_list() == COLUMN_NAMES_FOR_GBX_FROM_HTML[1:]  # type: ignore
-        
-        
+        assert gbx.columns.to_list() == expected_column_names # type: ignore 
+        assert gbx.index.name == "#"  # type: ignore        

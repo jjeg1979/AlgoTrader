@@ -9,7 +9,6 @@ from enum import StrEnum
 import pandas as pd
 from bs4 import BeautifulSoup
 
-
 # Project imports
 
 # CONSTANTS
@@ -26,34 +25,42 @@ HEADER_KEYS: list[str] = [
     'BTEnding',
     'EAParams',        
     ]
-COLUMN_NAMES_FOR_MT4_FROM_HTML: list[str] = [
-    "#",
-    "Time",
-    "Type",
-    "Order#",
-    "Volume",
-    "Price",
-    "SL",
-    "TP",
-    "Profit",
-    "Balance",
-]
-COLUMN_NAMES_FOR_GBX_FROM_HTML: list[str] = [
-    "#",
-    "OpenTime",
-    "Type",
-    "Volume",
-    "Symbol",
-    "OpenPrice",
-    "SL",
-    "TP",
-    "CloseTime",
-    "ClosePrice",
-    "Commission",
-    "Taxes",
-    "Swap",
-    "Profit",
-]
+SL_COL: str = "SL"
+TP_COL: str = "TP"
+PRICE_COL: str = "Price"
+VOL_COL: str = "Volume"
+PROFIT_COL: str = "Profit"
+#BALANCE_COL: str = "Balance"
+ORDER_TYPE: str = "Type"
+# format_dt: str = "%Y.%m.%d %H:"
+COLUMNS_FOR_MT4_FROM_HTML: dict[int, str] = {
+    1: "#",
+    2: "Time",
+    3: "Type",
+    4: "Order#",
+    5: "Volume",
+    6: "Price",
+    7: "SL",
+    8: "TP",
+    9: "Profit",
+    10: "Balace",
+}
+COLUMNS_FOR_GBX_FROM_HTML: dict[int, str] = {
+    1: "Order#",
+    2: "OpenTime",
+    3: "Type",
+    4: "Volume",
+    5: "Symbol",
+    6: "OpenPrice",
+    7: "SL",
+    8: "TP",
+    9: "CloseTime",
+    10: "ClosePrice",
+    11: "Commission",
+    12: "Taxes",
+    13: "Swap",
+    14: "Profit",
+}
 
 
 # ENUMERATIONS
@@ -261,8 +268,8 @@ def extract_mt4_operations_information(table: pd.DataFrame,) -> pd.DataFrame:
     # Remove first two columns    
     df: pd.DataFrame = table.iloc[1:, :]
     # Set column names
-    df.columns = COLUMN_NAMES_FOR_MT4_FROM_HTML
-    index_col = COLUMN_NAMES_FOR_MT4_FROM_HTML[0]
+    df.columns = list(COLUMNS_FOR_MT4_FROM_HTML.values())
+    index_col = list(COLUMNS_FOR_MT4_FROM_HTML.values())[0]
     df.set_index(index_col, inplace=True, drop=True)  # type: ignore        
     return df
 
@@ -283,11 +290,11 @@ def extract_gbx_operations_information(table: pd.DataFrame) -> pd.DataFrame:
     # Remove first two columns
     df: pd.DataFrame = table.iloc[4:, :]
     # Set column names
-    df.columns = COLUMN_NAMES_FOR_GBX_FROM_HTML    
+    df.columns = list(COLUMNS_FOR_GBX_FROM_HTML.values())    
     # GBX Needs a little bit more processing
-    odd_idx: list[int] = df[df['#'] == ''].index.to_list()  # type: ignore
+    odd_idx: list[int] = df[df['Order#'] == ''].index.to_list()  # type: ignore
     df_red: pd.DataFrame = df.drop(odd_idx)
-    df_red = df_red.drop("#", axis=1)
+    df_red = df_red.drop("Order#", axis=1)
     df_red = df_red.reset_index(drop=True)
     df_red.index.name = "#"
     # Remove last rows without operations information
@@ -307,30 +314,21 @@ def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
     Returns:
         pd.DataFrame: DataFrame ops homogenized
     """
-    ORDER_COL: str = "Order#"
-    TIME_COL: str = "Time"
-    SL_COL: str = "SL"
-    TP_COL: str = "TP"
-    PRICE_COL: str = "Price"
-    VOL_COL: str = "Volume"
-    PROFIT_COL: str = "Profit"
-    #BALANCE_COL: str = "Balance"
-    ORDER_TYPE: str = "Type"
-    # format_dt: str = "%Y.%m.%d %H:"
-    ops: list[str] = bt[ORDER_COL].unique().tolist()  # type: ignore
-    operations = []
+    columns: dict[int, str] = COLUMNS_FOR_MT4_FROM_HTML    
+    ops: list[str] = bt[columns[4]].unique().tolist()  # type: ignore
+    operations: list[list[str]] = []
     for op in ops:        
-        df: pd.DataFrame = bt[bt[ORDER_COL] == op]  # type: ignore
-        open_time: str = df[TIME_COL][0]
-        open_price: str = df[PRICE_COL][0]
-        order_type: str = df[ORDER_TYPE][0]
-        close_time: str = df[TIME_COL][-1]
-        close_price: str = df[PRICE_COL][-1]
-        stop_loss: str = df[SL_COL][0]
-        take_profit: str = df[TP_COL][0]
-        volume: str = df[VOL_COL][0]
-        profit: str = df[PROFIT_COL][-1]
-        #balance: str = df[BALANCE_COL][-1]
+        df: pd.DataFrame = bt[bt[columns[4]] == op]  # type: ignore
+        open_time: str = df[columns[2]][0]  # type: ignore
+        open_price: str = df[columns[6]][0]  # type: ignore
+        order_type: str = df[columns[3]][0]  # type: ignore
+        close_time: str = df[columns[2]][-1]  # type: ignore
+        close_price: str = df[columns[6]][-1]  # type: ignore
+        stop_loss: str = df[columns[7]][0]  # type: ignore
+        take_profit: str = df[columns[8]][0]# type: ignore
+        volume: str = df[columns[5]][0]  # type: ignore
+        profit: str = df[columns[9]][-1]  # type: ignore
+        #balance: str = df[columns[10]][-1]
         # TODO: Consider modifications of SL and TP (modified in Type)
         operations.append([
             op,
@@ -350,6 +348,7 @@ def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
         ])
     
     bt_df: pd.DataFrame = pd.DataFrame(data=operations)
-    bt_df.columns = COLUMN_NAMES_FOR_GBX_FROM_HTML
-    bt_df = bt_df.set_index('#', drop=True)  # type: ignore
+    bt_df.columns = [val for val in COLUMNS_FOR_GBX_FROM_HTML.values()]
+    bt_df = bt_df.set_index('Order#', drop=True)  # type: ignore
+    bt_df.index.name = "#"
     return bt_df
