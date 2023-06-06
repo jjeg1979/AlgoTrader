@@ -337,6 +337,7 @@ def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
             open_time,
             order_type,
             volume,
+            "",
             open_price,            
             stop_loss,
             take_profit,
@@ -350,7 +351,5 @@ def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
     
     bt_df: pd.DataFrame = pd.DataFrame(data=operations)
     bt_df.columns = COLUMN_NAMES_FOR_GBX_FROM_HTML
-    breakpoint()
+    bt_df = bt_df.set_index('#', drop=True)  # type: ignore
     return bt_df
-        
-    

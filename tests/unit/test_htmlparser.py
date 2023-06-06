@@ -19,6 +19,7 @@ from src.backtests.htmlparser import (
     HEADER_KEYS,
     COLUMN_NAMES_FOR_MT4_FROM_HTML,
     COLUMN_NAMES_FOR_GBX_FROM_HTML,
+    transform_mt4_to_gbx,
 )
 
 # CONSTANTS
@@ -97,3 +98,12 @@ class TestHTMLParser:
         assert isinstance(ops, pd.DataFrame)        
         assert ops.columns.to_list() == COLUMN_NAMES_FOR_GBX_FROM_HTML[1:]  # type: ignore
         assert ops.index.name == "#"  # type: ignore
+        
+    def test_transform_mt4_to_gbx(self):
+        bt: list[pd.DataFrame] = process_backtest(Path(PAYLOAD_DIR)/payload[1])
+        ops: pd.DataFrame = extract_mt4_operations_information(bt[1])
+        gbx: pd.DataFrame = transform_mt4_to_gbx(ops)
+        assert isinstance(gbx, pd.DataFrame)
+        assert gbx.columns.to_list() == COLUMN_NAMES_FOR_GBX_FROM_HTML[1:]  # type: ignore
+        
+        
