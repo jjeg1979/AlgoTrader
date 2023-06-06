@@ -12,12 +12,49 @@ from bs4 import BeautifulSoup
 
 # Project imports
 
-
 # CONSTANTS
 HTML_TABLE_TAG: str = "table"
 HTML_TABLE_ROW_TAG: str = "tr"
 HTML_TABLE_CELL_TAG: str = "td"
 HTML_PARSER = "html.parser"
+HEADER_KEYS: list[str] = [
+    'Symbol',
+    'TF',
+    'HistBeginning',
+    'HistEnding',
+    'BTBeginning',
+    'BTEnding',
+    'EAParams',        
+    ]
+COLUMN_NAMES_FOR_MT4_FROM_HTML: list[str] = [
+    "#",
+    "Time",
+    "Type",
+    "Order#",
+    "Volume",
+    "Price",
+    "SL",
+    "TP",
+    "Profit",
+    "Balance",
+]
+COLUMN_NAMES_FOR_GBX_FROM_HTML: list[str] = [
+    "#",
+    "OpenTime",
+    "Type",
+    "Volume",
+    "Symbol",
+    "OpenPrice",
+    "SL",
+    "TP",
+    "CloseTime",
+    "ClosePrice",
+    "Commission",
+    "Taxes",
+    "Swap",
+    "Profit",
+]
+
 
 # ENUMERATIONS
 class BTType(StrEnum):
@@ -32,16 +69,34 @@ class BTType(StrEnum):
         return [str(s) for s in BTType.__members__.values()]
     
 
+def process_backtest(file: Path) -> list[pd.DataFrame]:
+    """Performs the whole workflow for processing an htm/html
+    file containing information about a backtest
+
+    Calls other functions in this module
+
+    Args:
+        file (Path): Path to the htm/html file
+
+    Returns:
+        list[pd.DataFrame]: list with dataframes extracted
+    """
+    plain_text: str = read_html_file(file)  # type: ignore
+    tables: list[str] = extract_tables_from_html(plain_text)
+    return extract_dfs_from_html_tables(tables)
+    
+
+
 def read_html_file(file: Path) -> Optional[str]:
     """Reads a backtest file in html format
 
     Valid for MT4/MT5, Genbox and Account Statements
 
     Args:
-        file (Path): _description_
+        file (Path): Path to the htm/html file
 
     Raises:
-        FileNotFoundError: _description_
+        FileNotFoundError: Raised when the file is not found
 
     Returns:
         Optional[str]: _description_
@@ -53,7 +108,7 @@ def read_html_file(file: Path) -> Optional[str]:
         raise FileNotFoundError
 
 def extract_tables_from_html(html_content: str) -> list[str]:
-    """Extract tables in html file
+    """Extract tables contained in html file
 
 
     Args:
@@ -188,4 +243,114 @@ def extract_header_information(table: pd.DataFrame) -> dict[str, str | dict[str,
         'EAParams': ea_params,        
     }
     return header  # type: ignore
+    
+    
+def extract_mt4_operations_information(table: pd.DataFrame,) -> pd.DataFrame:
+    """Proceses the df with MT4 operations so it is easier to deal with.
+
+    - Removes unnecessary columns.
+    - Set column names as COLUMN_NAMES_FROM_HTML list
+    - Sets the index
+
+    Args:
+        table (pd.DataFrame): DataFrame with raw operations
+
+    Returns:
+        pd.DataFrame: DataFrame with the operations processed
+    """
+    # Remove first two columns    
+    df: pd.DataFrame = table.iloc[1:, :]
+    # Set column names
+    df.columns = COLUMN_NAMES_FOR_MT4_FROM_HTML
+    index_col = COLUMN_NAMES_FOR_MT4_FROM_HTML[0]
+    df.set_index(index_col, inplace=True, drop=True)  # type: ignore        
+    return df
+
+def extract_gbx_operations_information(table: pd.DataFrame) -> pd.DataFrame:
+    """Proceses the df with GBX operations so it is easier to deal with.
+
+    - Removes unnecessary columns.
+    - Set column names as COLUMN_NAMES_FROM_HTML list
+    - Sets the index
+
+    Args:
+        table (pd.DataFrame): DataFrame with raw operations
+        initial_balance (Decimal): Initial balance
+
+    Returns:
+        pd.DataFrame: DataFrame with the operations processed
+    """
+    # Remove first two columns
+    df: pd.DataFrame = table.iloc[4:, :]
+    # Set column names
+    df.columns = COLUMN_NAMES_FOR_GBX_FROM_HTML    
+    # GBX Needs a little bit more processing
+    odd_idx: list[int] = df[df['#'] == ''].index.to_list()  # type: ignore
+    df_red: pd.DataFrame = df.drop(odd_idx)
+    df_red = df_red.drop("#", axis=1)
+    df_red = df_red.reset_index(drop=True)
+    df_red.index.name = "#"
+    # Remove last rows without operations information
+    flag: str = df_red['Type'].unique()[0]   # type: ignore
+    last_idx: int = int(df_red[df_red['Type']==flag].index.values[-1]) + 1 # type: ignore
+    df_red = df_red.drop(range(last_idx, df_red.shape[0]))  # type: ignore        
+    return df_red
+
+def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
+    """Given a DataFrame with operations processed, this function
+    further processes the operations and provides an homogeneous format
+
+.
+    Args:
+        bt (pd.DataFrame): Operations as extracted from HTML backtest
+
+    Returns:
+        pd.DataFrame: DataFrame ops homogenized
+    """
+    ORDER_COL: str = "Order#"
+    TIME_COL: str = "Time"
+    SL_COL: str = "SL"
+    TP_COL: str = "TP"
+    PRICE_COL: str = "Price"
+    VOL_COL: str = "Volume"
+    PROFIT_COL: str = "Profit"
+    #BALANCE_COL: str = "Balance"
+    ORDER_TYPE: str = "Type"
+    # format_dt: str = "%Y.%m.%d %H:"
+    ops: list[str] = bt[ORDER_COL].unique().tolist()  # type: ignore
+    operations = []
+    for op in ops:        
+        df: pd.DataFrame = bt[bt[ORDER_COL] == op]  # type: ignore
+        open_time: str = df[TIME_COL][0]
+        open_price: str = df[PRICE_COL][0]
+        order_type: str = df[ORDER_TYPE][0]
+        close_time: str = df[TIME_COL][-1]
+        close_price: str = df[PRICE_COL][-1]
+        stop_loss: str = df[SL_COL][0]
+        take_profit: str = df[TP_COL][0]
+        volume: str = df[VOL_COL][0]
+        profit: str = df[PROFIT_COL][-1]
+        #balance: str = df[BALANCE_COL][-1]
+        # TODO: Consider modifications of SL and TP (modified in Type)
+        operations.append([
+            op,
+            open_time,
+            order_type,
+            volume,
+            open_price,            
+            stop_loss,
+            take_profit,
+            close_time,
+            close_price,
+            "0", # Commision
+            "0", # Taxes
+            "0", # Swap
+            profit,
+        ])
+    
+    bt_df: pd.DataFrame = pd.DataFrame(data=operations)
+    bt_df.columns = COLUMN_NAMES_FOR_GBX_FROM_HTML
+    breakpoint()
+    return bt_df
+        
     
