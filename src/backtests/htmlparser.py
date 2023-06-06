@@ -30,7 +30,7 @@ TP_COL: str = "TP"
 PRICE_COL: str = "Price"
 VOL_COL: str = "Volume"
 PROFIT_COL: str = "Profit"
-#BALANCE_COL: str = "Balance"
+# BALANCE_COL: str = "Balance"
 ORDER_TYPE: str = "Type"
 # format_dt: str = "%Y.%m.%d %H:"
 COLUMNS_FOR_MT4_FROM_HTML: dict[int, str] = {
@@ -206,7 +206,7 @@ def parse_ea_parameters(text: str) -> dict[str, str]:
     Header must come from an MT4/5 backtest file.
 
     Args:
-        text (str): Text string with CSV parameters 
+        text (str): Text string with CSV parameters
 
     Returns:
         dict[str, str]: 'Param_name': 'Param_value'
@@ -218,13 +218,13 @@ def parse_ea_parameters(text: str) -> dict[str, str]:
     for elem in elems:
         key, value = elem.split('=')
         params[key.strip()] = value.strip()
-        
+
     return params
-        
+
 
 def extract_header_information(table: pd.DataFrame) -> dict[str, str | dict[str, str]]:
     """Parses and stores data from header in a dictionary
-    
+
 
     Args:
         table (pd.DataFrame): DataFrame with header information
@@ -270,8 +270,9 @@ def extract_mt4_operations_information(table: pd.DataFrame,) -> pd.DataFrame:
     # Set column names
     df.columns = list(COLUMNS_FOR_MT4_FROM_HTML.values())
     index_col = list(COLUMNS_FOR_MT4_FROM_HTML.values())[0]
-    df.set_index(index_col, inplace=True, drop=True)  # type: ignore        
+    df.set_index(index_col, inplace=True, drop=True)  # type: ignore
     return df
+
 
 def extract_gbx_operations_information(table: pd.DataFrame) -> pd.DataFrame:
     """Proceses the df with GBX operations so it is easier to deal with.
@@ -299,9 +300,11 @@ def extract_gbx_operations_information(table: pd.DataFrame) -> pd.DataFrame:
     df_red.index.name = "#"
     # Remove last rows without operations information
     flag: str = df_red['Type'].unique()[0]   # type: ignore
-    last_idx: int = int(df_red[df_red['Type']==flag].index.values[-1]) + 1 # type: ignore
-    df_red = df_red.drop(range(last_idx, df_red.shape[0]))  # type: ignore        
+    last_idx: int = int(df_red[df_red['Type']==
+                               flag].index.values[-1]) + 1  # type: ignore
+    df_red = df_red.drop(range(last_idx, df_red.shape[0]))  # type: ignore
     return df_red
+
 
 def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
     """Given a DataFrame with operations processed, this function
@@ -325,10 +328,10 @@ def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
         close_time: str = df[columns[2]][-1]  # type: ignore
         close_price: str = df[columns[6]][-1]  # type: ignore
         stop_loss: str = df[columns[7]][0]  # type: ignore
-        take_profit: str = df[columns[8]][0]# type: ignore
+        take_profit: str = df[columns[8]][0]  # type: ignore
         volume: str = df[columns[5]][0]  # type: ignore
         profit: str = df[columns[9]][-1]  # type: ignore
-        #balance: str = df[columns[10]][-1]
+        # balance: str = df[columns[10]][-1]
         # TODO: Consider modifications of SL and TP (modified in Type)
         operations.append([
             op,
@@ -341,12 +344,12 @@ def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
             take_profit,
             close_time,
             close_price,
-            "0", # Commision
-            "0", # Taxes
-            "0", # Swap
+            "0",  # Commision
+            "0",  # Taxes
+            "0",  # Swap
             profit,
         ])
-    
+
     bt_df: pd.DataFrame = pd.DataFrame(data=operations)
     bt_df.columns = [val for val in COLUMNS_FOR_GBX_FROM_HTML.values()]
     bt_df = bt_df.set_index('Order#', drop=True)  # type: ignore

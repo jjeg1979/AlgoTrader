@@ -103,7 +103,7 @@ class TestHTMLParser:
         bt: list[pd.DataFrame] = process_backtest(Path(PAYLOAD_DIR)/payload[1])
         ops: pd.DataFrame = extract_mt4_operations_information(bt[1])
         gbx: pd.DataFrame = transform_mt4_to_gbx(ops)
-        gitexpected_column_names: list[str] = list(COLUMNS_FOR_GBX_FROM_HTML.values())[1:]
+        expected_column_names: list[str] = list(COLUMNS_FOR_GBX_FROM_HTML.values())[1:]
         assert isinstance(gbx, pd.DataFrame)
         assert gbx.columns.to_list() == expected_column_names # type: ignore 
         assert gbx.index.name == "#"  # type: ignore        
