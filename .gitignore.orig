@@ -1,0 +1,9 @@
+.vscode/
+<<<<<<< HEAD
+venv/
+__pycache__/
+=======
+.pytest_cache/
+__pycache__/
+venv/
+>>>>>>> feature/HTMLBTFile
