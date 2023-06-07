@@ -232,6 +232,7 @@ def extract_header_information(table: pd.DataFrame) -> dict[str, str | dict[str,
     Returns:
         dict[str, str | dict[str, str]]: Formatted header information
     """
+    # TODO: Refactor so this function only needs to be passed a list[str]
     data_col: list[str] = table.iloc[:,1]  # type: ignore
     
     dates_in_table: list[str] = parse_dates_and_times_from_string(data_col[1])
@@ -265,7 +266,8 @@ def extract_mt4_operations_information(table: pd.DataFrame,) -> pd.DataFrame:
     Returns:
         pd.DataFrame: DataFrame with the operations processed
     """
-    # Remove first two columns    
+    # Remove first two columns
+    # TODO: Refactor so this function only needs to be passed a list[str]
     df: pd.DataFrame = table.iloc[1:, :]
     # Set column names
     df.columns = list(COLUMNS_FOR_MT4_FROM_HTML.values())
@@ -289,6 +291,7 @@ def extract_gbx_operations_information(table: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame: DataFrame with the operations processed
     """
     # Remove first two columns
+    # TODO: Refactor so this function only needs to be passed a list[str]
     df: pd.DataFrame = table.iloc[4:, :]
     # Set column names
     df.columns = list(COLUMNS_FOR_GBX_FROM_HTML.values())    
@@ -322,6 +325,7 @@ def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
     operations: list[list[str]] = []
     for op in ops:        
         df: pd.DataFrame = bt[bt[columns[4]] == op]  # type: ignore
+        # TODO: Refactor to be done by a separate function
         open_time: str = df[columns[2]][0]  # type: ignore
         open_price: str = df[columns[6]][0]  # type: ignore
         order_type: str = df[columns[3]][0]  # type: ignore
@@ -350,8 +354,8 @@ def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
             profit,
         ])
 
-    bt_df: pd.DataFrame = pd.DataFrame(data=operations)
-    bt_df.columns = [val for val in COLUMNS_FOR_GBX_FROM_HTML.values()]
+    bt_df: pd.DataFrame = pd.DataFrame(data=operations)    
+    bt_df.columns = list(COLUMNS_FOR_GBX_FROM_HTML.values())
     bt_df = bt_df.set_index('Order#', drop=True)  # type: ignore
     bt_df.index.name = "#"
     return bt_df
