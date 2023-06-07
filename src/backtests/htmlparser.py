@@ -322,9 +322,9 @@ def extract_header_information(table: pd.DataFrame) -> dict[str, str | dict[str,
         parse_dates_and_times_from_string(data_col[1])  # type: ignore
     dates_as_dt: list[dt] =\
         [convert_str_to_datetime(date) for date in dates_in_table]  # type: ignore
-    timeframe: str = parse_timeframe_from_string(data_col[1])
+    timeframe: str = parse_timeframe_from_string(data_col[1])  # type: ignore
 
-    ea_params: dict[str, str] = parse_ea_parameters_from_header(data_col[3])
+    ea_params: dict[str, str] = parse_ea_parameters_from_header(data_col[3]) # type: ignore
 
     header: dict[str, str | dt | dict[str, str]] = {
         "Symbol": data_col[0].split(" ")[0],
@@ -471,3 +471,25 @@ def clean_df_from_overhead_cols(ops: pd.DataFrame,
     """
     
     return ops.drop(cols, axis=1)
+
+def is_ops_df_valid(ops: pd.DataFrame) -> bool:
+    """Checks whether a DataFrame is valid or not.
+
+    Validation is limited to the cols contained in the keys stored in
+    the dictionary called COLUMNS_FOR_GBX_FROM_HTML[1:].
+    
+    If overhead columns are not in ops, the result will be also valid,
+    since these columns are not deedmed neccessary.
+    
+    Profit is left out, since it could be calculated from the rest of the
+    columns.
+
+    Args:
+        ops (pd.DataFrame): DataFrame to be checked for validity
+
+    Returns:
+        bool: True if ops contains all the columns required
+    """
+    required_cols: set[str] = set(list(COLUMNS_FOR_GBX_FROM_HTML.values())[1:11])  # type: ignore
+    actual_cols: set[str] = set(ops.columns)    
+    return required_cols.issubset(actual_cols)  # type: ignore

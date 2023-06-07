@@ -17,6 +17,7 @@ from src.backtests.htmlparser import (
     get_gbx_operations,
     extract_gbx_operations_information,
     extract_mt4_operations_information,
+    is_ops_df_valid,
     process_backtest,
     read_html_file,
     extract_tables_from_html,
@@ -133,9 +134,9 @@ class TestHTMLParser:
             if datatype == dt:
                 expected_type = np.dtype("<M8[ns]")  # type: ignore
             elif datatype == Decimal:
-                expected_type = np.dtype("object")
+                expected_type = np.dtype("object")  # type: ignore
             else:
-                expected_type = np.dtype("O")
+                expected_type = np.dtype("O")  # type: ignore
             assert ops[column].dtype == expected_type
 
     def test_transform_mt4_columns_to_proper_datatype(self):
@@ -143,11 +144,11 @@ class TestHTMLParser:
         ops: pd.DataFrame = transform_columns_to_proper_datatype(mt4)
         for column, datatype in COLUMNS_DATATYPES.items():
             if datatype == dt:
-                expected_type = np.dtype("<M8[ns]")
+                expected_type = np.dtype("<M8[ns]")  # type: ignore
             elif datatype == Decimal:
-                expected_type = np.dtype("object")
+                expected_type = np.dtype("object")  # type: ignore
             else:
-                expected_type = np.dtype("O")
+                expected_type = np.dtype("O")  # type: ignore
             assert ops[column].dtype == expected_type
             
     def test_mt4_clean_df_from_overhead_cols(self):
@@ -169,3 +170,19 @@ class TestHTMLParser:
                         COLUMNS_FOR_GBX_FROM_HTML[13]]        
         for col in removed_cols:
             assert col not in ops_clean.columns
+            
+    def test_is_ops_df_valid_returns_correct_validation_result(self):
+       mt4: pd.DataFrame = get_mt4_operations(Path(PAYLOAD_DIR) / payload[1])
+       mt4_ops: pd.DataFrame = transform_columns_to_proper_datatype(mt4)
+       gbx: pd.DataFrame = get_gbx_operations(Path(PAYLOAD_DIR) / payload[14])
+       gbx_ops: pd.DataFrame = transform_columns_to_proper_datatype(gbx)
+       assert is_ops_df_valid(mt4_ops) is True
+       assert is_ops_df_valid(gbx_ops) is True
+       
+       columns: list[str] = list(gbx_ops.columns)
+       bad_col: str = "BADCOLNAME"
+       columns[2] = bad_col
+       gbx_ops.columns = columns
+       mt4_ops.columns = columns
+       assert is_ops_df_valid(mt4_ops) is False
+       assert is_ops_df_valid(gbx_ops) is False       
