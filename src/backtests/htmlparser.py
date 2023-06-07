@@ -91,6 +91,41 @@ def process_backtest(file: Path) -> list[pd.DataFrame]:
     plain_text: str = read_html_file(file)  # type: ignore
     tables: list[str] = extract_tables_from_html(plain_text)
     return extract_dfs_from_html_tables(tables)
+
+def get_mt4_operations(file: Path) -> pd.DataFrame:
+    """From an html file with an MT4 backtest, extracts the
+    operations and return a DataFrame with the information.
+
+    All columns have the correct data type
+
+    Args:
+        file (Path): Path to the htm/html file
+
+    Returns:
+        pd.DataFrame: Operations
+    """
+    mt4: list[pd.DataFrame] = process_backtest(file)
+    temp_ops: pd.DataFrame = extract_mt4_operations_information(mt4[1])
+    ops: pd.DataFrame = transform_mt4_to_gbx(temp_ops)
+    # TODO: Transform columns in a proper datatype
+    return ops
+
+def get_gbx_operations(file: Path) -> pd.DataFrame:
+    """From an html file with a GBX backtest, extracts the
+    operations and return a DataFrame with the information.
+
+    All columns have the correct data type
+
+    Args:
+        file (Path): Path to the htm/html file
+
+    Returns:
+        pd.DataFrame: Operations
+    """
+    gbx: list[pd.DataFrame] = process_backtest(file)
+    ops: pd.DataFrame = extract_gbx_operations_information(gbx[0])    
+    # TODO: Transform columns in a proper datatype
+    return ops
     
 
 

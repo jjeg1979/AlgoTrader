@@ -9,6 +9,8 @@ import pandas as pd
 
 
 from src.backtests.htmlparser import (
+    get_mt4_operations,
+    get_gbx_operations,
     extract_gbx_operations_information,
     extract_mt4_operations_information,
     process_backtest,
@@ -111,12 +113,9 @@ class TestHTMLParser:
         assert gbx.index.name == "#"  # type: ignore
 
     def test_bt_from_gbx_and_from_mt4_are_compatible(self):
-        mt4: list[pd.DataFrame] = process_backtest(Path(PAYLOAD_DIR) / payload[1])
-        ops_mt4: pd.DataFrame = extract_mt4_operations_information(mt4[1])
-        mt4_to_gbx: pd.DataFrame = transform_mt4_to_gbx(ops_mt4)
-        gbx: list[pd.DataFrame] = process_backtest(Path(PAYLOAD_DIR) / payload[14])
-        ops_gbx: pd.DataFrame = extract_gbx_operations_information(gbx[0])        
+        mt4: pd.DataFrame = get_mt4_operations(Path(PAYLOAD_DIR) / payload[1])
+        gbx: pd.DataFrame = get_gbx_operations(Path(PAYLOAD_DIR) / payload[14])
         expected_column_names: list[str] = list(COLUMNS_FOR_GBX_FROM_HTML.values())[1:]
-        df: pd.DataFrame = pd.concat([mt4_to_gbx, ops_gbx], axis=0)  # type: ignore
+        df: pd.DataFrame = pd.concat([mt4, gbx], axis=0)  # type: ignore
         assert df.columns.to_list() == expected_column_names  # type: ignore
         assert df.index.name == "#"  # type: ignore
