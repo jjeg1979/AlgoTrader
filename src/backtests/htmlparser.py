@@ -34,7 +34,7 @@ VOL_COL: str = "Volume"
 PROFIT_COL: str = "Profit"
 # BALANCE_COL: str = "Balance"
 ORDER_TYPE: str = "Type"
-# format_dt: str = "%Y.%m.%d %H:%M"
+format_dt: str = "%Y.%m.%d %H:%M"
 
 COLUMNS_FOR_MT4_FROM_HTML: dict[int, str] = {
     1: "#",
@@ -164,11 +164,12 @@ def transform_columns_to_proper_datatype(ops: pd.DataFrame) -> pd.DataFrame:
     for column, datatype in COLUMNS_DATATYPES.items():
         if column in ops.columns:
             if datatype == dt:
-                ops[column] = pd.to_datetime(ops[column], format="mixed")  # type: ignore
+                ops[column] = pd.to_datetime(  # type: ignore
+                    ops[column], format=format_dt  # type: ignore
+                )
             elif datatype == Decimal:
-                ops[column] = ops[column].astype(str).apply(Decimal)  # type: ignore
-                # ops[column] = pd.to_numeric(ops[column], errors='coerce').apply(Decimal)  # type: ignore
-                # ops[column] = ops[column].apply(Decimal)  # type: ignore
+                ops[column] =\
+                    ops[column].astype(str).apply(Decimal)  # type: ignore
             else:
                 ops[column] = ops[column].astype(datatype)  # type: ignore
     return ops
@@ -318,13 +319,15 @@ def extract_header_information(table: pd.DataFrame) -> dict[str, str | dict[str,
     # TODO: Refactor so this function only needs to be passed a list[str]
     data_col: list[str] = table.iloc[:, 1]  # type: ignore
 
-    dates_in_table: list[str] =\
-        parse_dates_and_times_from_string(data_col[1])  # type: ignore
-    dates_as_dt: list[dt] =\
-        [convert_str_to_datetime(date) for date in dates_in_table]  # type: ignore
+    dates_in_table: list[str] = parse_dates_and_times_from_string(
+        data_col[1]
+    )  # type: ignore
+    dates_as_dt: list[dt] = [
+        convert_str_to_datetime(date) for date in dates_in_table
+    ]  # type: ignore
     timeframe: str = parse_timeframe_from_string(data_col[1])  # type: ignore
 
-    ea_params: dict[str, str] = parse_ea_parameters_from_header(data_col[3]) # type: ignore
+    ea_params: dict[str, str] = parse_ea_parameters_from_header(data_col[3])  # type: ignore
 
     header: dict[str, str | dt | dict[str, str]] = {
         "Symbol": data_col[0].split(" ")[0],
@@ -338,9 +341,7 @@ def extract_header_information(table: pd.DataFrame) -> dict[str, str | dict[str,
     return header  # type: ignore
 
 
-def extract_mt4_operations_information(
-    table: pd.DataFrame,
-) -> pd.DataFrame:
+def extract_mt4_operations_information(table: pd.DataFrame) -> pd.DataFrame:
     """Proceses the df with MT4 operations so it is easier to deal with.
 
     - Removes unnecessary columns.
@@ -390,8 +391,9 @@ def extract_gbx_operations_information(table: pd.DataFrame) -> pd.DataFrame:
     df_red.index.name = "#"
     # Remove last rows without operations information
     flag: str = df_red["Type"].unique()[0]  # type: ignore
-    last_idx: int = int(df_red[df_red["Type"] == flag].\
-        index.values[-1]) + 1  # type: ignore
+    last_idx: int = (
+        df_red[df_red["Type"] == flag].index.values[-1]
+    ) + 1  # type: ignore
     df_red = df_red.drop(range(last_idx, df_red.shape[0]))  # type: ignore
     return df_red
 
@@ -449,38 +451,43 @@ def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
     bt_df.index.name = "#"
     return bt_df
 
-def clean_df_from_overhead_cols(ops: pd.DataFrame,
-                                cols: list[str] = 
-                                [COLUMNS_FOR_GBX_FROM_HTML[11],
-                                 COLUMNS_FOR_GBX_FROM_HTML[12],
-                                 COLUMNS_FOR_GBX_FROM_HTML[13]]) -> pd.DataFrame:
+
+def clean_df_from_overhead_cols(
+    ops: pd.DataFrame,
+    cols: list[str] = [
+        COLUMNS_FOR_GBX_FROM_HTML[11],
+        COLUMNS_FOR_GBX_FROM_HTML[12],
+        COLUMNS_FOR_GBX_FROM_HTML[13],
+    ],
+) -> pd.DataFrame:
     """Removes some colums that contain information not needed in the
     backtest. This applies to backtests from Metatrader and/or Genbox
 
-    
+
 
     Args:
         ops (pd.DataFrame): _description_
         cols (list[str], optional): Columns to be removed.
-        Defaults to [COLUMNS_FOR_GBX_FROM_HTML[11], 
-                    COLUMNS_FOR_GBX_FROM_HTML[12], 
+        Defaults to [COLUMNS_FOR_GBX_FROM_HTML[11],
+                    COLUMNS_FOR_GBX_FROM_HTML[12],
                     COLUMNS_FOR_GBX_FROM_HTML[13]].
 
     Returns:
         pd.DataFrame: DataFrame without the cols selected
     """
-    
+
     return ops.drop(cols, axis=1)
+
 
 def is_ops_df_valid(ops: pd.DataFrame) -> bool:
     """Checks whether a DataFrame is valid or not.
 
     Validation is limited to the cols contained in the keys stored in
     the dictionary called COLUMNS_FOR_GBX_FROM_HTML[1:].
-    
+
     If overhead columns are not in ops, the result will be also valid,
     since these columns are not deedmed neccessary.
-    
+
     Profit is left out, since it could be calculated from the rest of the
     columns.
 
@@ -490,23 +497,25 @@ def is_ops_df_valid(ops: pd.DataFrame) -> bool:
     Returns:
         bool: True if ops contains all the columns required
     """
-    required_cols: set[str] = set(list(COLUMNS_FOR_GBX_FROM_HTML.values())[1:11])  # type: ignore
-    actual_cols: set[str] = set(ops.columns)    
+    required_cols: set[str] = set(
+        list(COLUMNS_FOR_GBX_FROM_HTML.values())[1:11]
+    )  # type: ignore
+    actual_cols: set[str] = set(ops.columns)
     return required_cols.issubset(actual_cols)  # type: ignore
 
 
-def get_balance_from_ops(profit: pd.Series,  # type: ignore
-                         initial_balance: Decimal = Decimal('10000')) -> pd.Series:  # type: ignore
+def get_balance_from_ops(
+    profit: pd.Series, initial_bal: Decimal = Decimal("10000")  # type: ignore
+) -> pd.Series:  # type: ignore
     """Generates the Balance curve from the Profit (in monetary terms).add()
-    
+
     This is only directly applicable to backtests from MT4
 
-    
+
     Args:
         profit (pd.Series): Series with profit in monetary terms
 
     Returns:
         pd.Series: _description_
     """
-    return initial_balance + profit.cumsum()  # type: ignore
-    
+    return initial_bal + profit.cumsum()  # type: ignore
