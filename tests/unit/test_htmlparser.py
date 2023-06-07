@@ -2,9 +2,12 @@
 # Standard library imports
 import os
 from pathlib import Path
+from datetime import datetime as dt
+from decimal import Decimal
 
 # Third party imports
 import pytest
+import numpy as np
 import pandas as pd
 
 
@@ -18,10 +21,12 @@ from src.backtests.htmlparser import (
     extract_tables_from_html,
     extract_dfs_from_html_tables,
     extract_header_information,
+    transform_columns_to_proper_datatype,
+    transform_mt4_to_gbx,
     HEADER_KEYS,
     COLUMNS_FOR_MT4_FROM_HTML,
     COLUMNS_FOR_GBX_FROM_HTML,
-    transform_mt4_to_gbx,
+    COLUMNS_DATATYPES,
 )
 
 # CONSTANTS
@@ -119,3 +124,27 @@ class TestHTMLParser:
         df: pd.DataFrame = pd.concat([mt4, gbx], axis=0)  # type: ignore
         assert df.columns.to_list() == expected_column_names  # type: ignore
         assert df.index.name == "#"  # type: ignore
+
+    def test_transform_gbx_columns_to_proper_datatype(self):
+        gbx: pd.DataFrame = get_gbx_operations(Path(PAYLOAD_DIR) / payload[14])
+        ops: pd.DataFrame = transform_columns_to_proper_datatype(gbx)
+        for column, datatype in COLUMNS_DATATYPES.items():
+            if datatype == dt:
+                expected_type = np.dtype("<M8[ns]")
+            elif datatype == Decimal:
+                expected_type = np.dtype("object")
+            else:
+                expected_type = np.dtype("O")
+            assert ops[column].dtype == expected_type
+
+    def test_transform_mt4_columns_to_proper_datatype(self):
+        mt4: pd.DataFrame = get_mt4_operations(Path(PAYLOAD_DIR) / payload[1])
+        ops: pd.DataFrame = transform_columns_to_proper_datatype(mt4)        
+        for column, datatype in COLUMNS_DATATYPES.items():
+            if datatype == dt:
+                expected_type = np.dtype("<M8[ns]")
+            elif datatype == Decimal:
+                expected_type = np.dtype("object")
+            else:
+                expected_type = np.dtype("O")
+            assert ops[column].dtype == expected_type
