@@ -493,3 +493,20 @@ def is_ops_df_valid(ops: pd.DataFrame) -> bool:
     required_cols: set[str] = set(list(COLUMNS_FOR_GBX_FROM_HTML.values())[1:11])  # type: ignore
     actual_cols: set[str] = set(ops.columns)    
     return required_cols.issubset(actual_cols)  # type: ignore
+
+
+def get_balance_from_ops(profit: pd.Series,  # type: ignore
+                         initial_balance: Decimal = Decimal('10000')) -> pd.Series:  # type: ignore
+    """Generates the Balance curve from the Profit (in monetary terms).add()
+    
+    This is only directly applicable to backtests from MT4
+
+    
+    Args:
+        profit (pd.Series): Series with profit in monetary terms
+
+    Returns:
+        pd.Series: _description_
+    """
+    return initial_balance + profit.cumsum()  # type: ignore
+    

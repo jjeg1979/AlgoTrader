@@ -13,6 +13,7 @@ import pandas as pd
 
 from src.backtests.htmlparser import (
     clean_df_from_overhead_cols,
+    get_balance_from_ops,
     get_mt4_operations,
     get_gbx_operations,
     extract_gbx_operations_information,
@@ -185,4 +186,21 @@ class TestHTMLParser:
        gbx_ops.columns = columns
        mt4_ops.columns = columns
        assert is_ops_df_valid(mt4_ops) is False
-       assert is_ops_df_valid(gbx_ops) is False       
+       assert is_ops_df_valid(gbx_ops) is False
+       
+    def test_get_balance_from_ops(self):
+       mt4: pd.DataFrame = get_mt4_operations(Path(PAYLOAD_DIR) / payload[1])
+       mt4_ops: pd.DataFrame = transform_columns_to_proper_datatype(mt4)
+       gbx: pd.DataFrame = get_gbx_operations(Path(PAYLOAD_DIR) / payload[14])
+       gbx_ops: pd.DataFrame = transform_columns_to_proper_datatype(gbx)
+       
+       initial_bal: Decimal = Decimal('10_000')
+       mt4_balance: pd.Series = get_balance_from_ops(mt4_ops["Profit"],  # type: ignore
+                                                     initial_bal)  # type: ignore
+       gbx_balance: pd.Series = get_balance_from_ops(gbx_ops["Profit"],  # type: ignore
+                                                     initial_bal)  # type: ignore
+              
+       assert ((mt4_balance.iloc[-1] - initial_bal) ==  # type: ignore
+           mt4_ops["Profit"].sum())  # type: ignore
+       assert ((gbx_balance.iloc[-1] - initial_bal) ==  # type: ignore
+           gbx_ops["Profit"].sum())  # type: ignore
