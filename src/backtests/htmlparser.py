@@ -246,7 +246,7 @@ def parse_dates_and_times_from_string(text: str) -> list[str]:
     """
     # Pattern for date and time
     pattern_dt: str = r"\d{4}\.\d{2}\.\d{2}(?: \d{2}:\d{2})?"
-    dates_in_table: list[str] = re.findall(pattern_dt, text)
+    dates_in_table: list[str] = re.findall(pattern_dt, text)  # type: ignore
     return dates_in_table
 
 
@@ -448,3 +448,26 @@ def transform_mt4_to_gbx(bt: pd.DataFrame) -> pd.DataFrame:
     bt_df = bt_df.set_index("Order#", drop=True)  # type: ignore
     bt_df.index.name = "#"
     return bt_df
+
+def clean_df_from_overhead_cols(ops: pd.DataFrame,
+                                cols: list[str] = 
+                                [COLUMNS_FOR_GBX_FROM_HTML[11],
+                                 COLUMNS_FOR_GBX_FROM_HTML[12],
+                                 COLUMNS_FOR_GBX_FROM_HTML[13]]) -> pd.DataFrame:
+    """Removes some colums that contain information not needed in the
+    backtest. This applies to backtests from Metatrader and/or Genbox
+
+    
+
+    Args:
+        ops (pd.DataFrame): _description_
+        cols (list[str], optional): Columns to be removed.
+        Defaults to [COLUMNS_FOR_GBX_FROM_HTML[11], 
+                    COLUMNS_FOR_GBX_FROM_HTML[12], 
+                    COLUMNS_FOR_GBX_FROM_HTML[13]].
+
+    Returns:
+        pd.DataFrame: DataFrame without the cols selected
+    """
+    
+    return ops.drop(cols, axis=1)

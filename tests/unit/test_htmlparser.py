@@ -12,6 +12,7 @@ import pandas as pd
 
 
 from src.backtests.htmlparser import (
+    clean_df_from_overhead_cols,
     get_mt4_operations,
     get_gbx_operations,
     extract_gbx_operations_information,
@@ -130,7 +131,7 @@ class TestHTMLParser:
         ops: pd.DataFrame = transform_columns_to_proper_datatype(gbx)
         for column, datatype in COLUMNS_DATATYPES.items():
             if datatype == dt:
-                expected_type = np.dtype("<M8[ns]")
+                expected_type = np.dtype("<M8[ns]")  # type: ignore
             elif datatype == Decimal:
                 expected_type = np.dtype("object")
             else:
@@ -139,7 +140,7 @@ class TestHTMLParser:
 
     def test_transform_mt4_columns_to_proper_datatype(self):
         mt4: pd.DataFrame = get_mt4_operations(Path(PAYLOAD_DIR) / payload[1])
-        ops: pd.DataFrame = transform_columns_to_proper_datatype(mt4)        
+        ops: pd.DataFrame = transform_columns_to_proper_datatype(mt4)
         for column, datatype in COLUMNS_DATATYPES.items():
             if datatype == dt:
                 expected_type = np.dtype("<M8[ns]")
@@ -148,3 +149,23 @@ class TestHTMLParser:
             else:
                 expected_type = np.dtype("O")
             assert ops[column].dtype == expected_type
+            
+    def test_mt4_clean_df_from_overhead_cols(self):
+        mt4: pd.DataFrame = get_mt4_operations(Path(PAYLOAD_DIR) / payload[1])
+        ops: pd.DataFrame = transform_columns_to_proper_datatype(mt4)
+        ops_clean: pd.DataFrame = clean_df_from_overhead_cols(ops)
+        removed_cols = [COLUMNS_FOR_GBX_FROM_HTML[11],
+                        COLUMNS_FOR_GBX_FROM_HTML[12],
+                        COLUMNS_FOR_GBX_FROM_HTML[13]]        
+        for col in removed_cols:
+            assert col not in ops_clean.columns
+            
+    def test_gbx_clean_df_from_overhead_cols(self):
+        gbx: pd.DataFrame = get_gbx_operations(Path(PAYLOAD_DIR) / payload[14])
+        ops: pd.DataFrame = transform_columns_to_proper_datatype(gbx)
+        ops_clean: pd.DataFrame = clean_df_from_overhead_cols(ops)
+        removed_cols = [COLUMNS_FOR_GBX_FROM_HTML[11],
+                        COLUMNS_FOR_GBX_FROM_HTML[12],
+                        COLUMNS_FOR_GBX_FROM_HTML[13]]        
+        for col in removed_cols:
+            assert col not in ops_clean.columns
