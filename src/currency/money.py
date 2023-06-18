@@ -7,6 +7,7 @@ from typing import Self
 from enum import StrEnum
 
 # Third party imports
+# TODO: Remove dependency from this, better Google/Yahoo
 from forex_python.converter import CurrencyRates
 
 
