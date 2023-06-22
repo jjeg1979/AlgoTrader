@@ -7,18 +7,5 @@
         "tests"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "editor.tokenColorCustomizations": {
-        "comments": "#00ffae",
-        "strings": "#FF9900",
-        "textMateRules": [
-            {
-                "scope": "string.quoted.docstring.multi.python",
-                "settings": {
-                    "foreground": "#f5aa28",
-                    "fontStyle": "",
-                }
-            }
-        ]
-    }
+    "python.testing.pytestEnabled": true,    
 }

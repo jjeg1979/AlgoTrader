@@ -203,13 +203,16 @@ class Money:
         date_and_time = dt.strptime(date_str, "%Y-%m-%d").date()
         # Get the exchange rate using forex-python library
         c = CurrencyRates(force_decimal=True)
-        exchange_rate: Decimal = \
-            c.get_rate(str(self.currency_symbol),  # type: ignore
-                       str(other_curr.currency_symbol),
-                       date_and_time)  # type: ignore
-        return Money(exchange_rate * self.amount_cents,  # type: ignore
-                     self.precision,
-                     other_curr.currency_symbol)
+        exchange_rate: Decimal = c.get_rate(
+            str(self.currency_symbol),  # type: ignore
+            str(other_curr.currency_symbol),
+            date_and_time,
+        )  # type: ignore
+        return Money(
+            exchange_rate * self.amount_cents,  # type: ignore
+            self.precision,
+            other_curr.currency_symbol,
+        )
 
     def __str__(self) -> str:
         """Return a string representation of the Money instance.
@@ -235,8 +238,7 @@ class Money:
             InvalidMoneyType: If the `other` parameter is not an
             instance of the Money class.
         """
-        if (isinstance(other, Money)
-                and self.currency_symbol == other.currency_symbol):
+        if isinstance(other, Money) and self.currency_symbol == other.currency_symbol:
             return Money(
                 self.amount_cents + other.amount_cents,
                 self.precision,
@@ -261,8 +263,7 @@ class Money:
             InvalidMoneyType: If the `other` parameter is not an instance
             of the Money class.
         """
-        if (isinstance(other, Money)
-                and self.currency_symbol == other.currency_symbol):
+        if isinstance(other, Money) and self.currency_symbol == other.currency_symbol:
             return Money(
                 self.amount_cents - other.amount_cents,
                 self.precision,

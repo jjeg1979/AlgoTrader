@@ -165,12 +165,13 @@ def transform_columns_to_proper_datatype(ops: pd.DataFrame) -> pd.DataFrame:
         if column in ops.columns:
             if datatype == dt:
                 ops[column] = pd.to_datetime(  # type: ignore
-                    ops[column], format='mixed'  # type: ignore
+                    ops[column], format="mixed"  # type: ignore
                     # ops[column], format='%Y.%m%d %H:%M%S'  # type: ignore
                 )
             elif datatype == Decimal:
                 ops[column] = (  # type: ignore
-                    ops[column].astype(str).apply(Decimal))  # type: ignore
+                    ops[column].astype(str).apply(Decimal)  # type: ignore
+                )  # type: ignore
             else:
                 ops[column] = ops[column].astype(datatype)  # type: ignore
     return ops
@@ -228,9 +229,10 @@ def extract_dfs_from_html_tables(tables: list[str]) -> list[pd.DataFrame]:
         table_data: list[pd.DataFrame] = []
         for row in rows:  # type: ignore
             cells: list[str] = row.find_all(  # type: ignore
-                HTML_TABLE_CELL_TAG)  # type: ignore
-            row_data: list[str] = [
-                cell.text.strip() for cell in cells]  # type: ignore
+                HTML_TABLE_CELL_TAG
+            )  # type: ignore
+            row_data: list[str] =\
+                [cell.text.strip() for cell in cells]  # type: ignore
             table_data.append(row_data)  # type: ignore
         df = pd.DataFrame(table_data)
         extracted_tables.append(df)
@@ -309,8 +311,7 @@ def parse_ea_parameters_from_header(text: str) -> dict[str, str]:
     return params
 
 
-def extract_header_information(
-        table: pd.DataFrame) -> dict[str, str | dict[str, str]]:
+def extract_header_information(table: pd.DataFrame) -> dict[str, str | dict[str, str]]:
     """Parses and stores data from header in a dictionary
 
 
@@ -332,7 +333,8 @@ def extract_header_information(
     timeframe: str = parse_timeframe_from_string(data_col[1])  # type: ignore
 
     ea_params: dict[str, str] = parse_ea_parameters_from_header(
-        data_col[3])  # type: ignore
+        data_col[3]
+    )  # type: ignore
 
     header: dict[str, str | dt | dict[str, str]] = {
         "Symbol": data_col[0].split(" ")[0],
