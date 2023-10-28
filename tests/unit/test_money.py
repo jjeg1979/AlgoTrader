@@ -114,8 +114,7 @@ class TestMoneyClass:
             (Money(400, 2) - Money(250, 2), 150),
         ],
     )  # type: ignore
-    def test_subtraction_provides_correct_result(self, 
-                                                 actual: Money, expected: int):
+    def test_subtraction_provides_correct_result(self, actual: Money, expected: int):
         assert actual.amount_cents == expected
 
     def test_sum_with_other_type_raises_InvalidMoneyTypeError(self):

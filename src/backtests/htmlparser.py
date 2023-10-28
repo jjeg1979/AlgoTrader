@@ -165,7 +165,8 @@ def transform_columns_to_proper_datatype(ops: pd.DataFrame) -> pd.DataFrame:
         if column in ops.columns:
             if datatype == dt:
                 ops[column] = pd.to_datetime(  # type: ignore
-                    ops[column], format="mixed"  # type: ignore
+                    ops[column],
+                    format="mixed"  # type: ignore
                     # ops[column], format='%Y.%m%d %H:%M%S'  # type: ignore
                 )
             elif datatype == Decimal:
@@ -231,8 +232,7 @@ def extract_dfs_from_html_tables(tables: list[str]) -> list[pd.DataFrame]:
             cells: list[str] = row.find_all(  # type: ignore
                 HTML_TABLE_CELL_TAG
             )  # type: ignore
-            row_data: list[str] =\
-                [cell.text.strip() for cell in cells]  # type: ignore
+            row_data: list[str] = [cell.text.strip() for cell in cells]  # type: ignore
             table_data.append(row_data)  # type: ignore
         df = pd.DataFrame(table_data)
         extracted_tables.append(df)
